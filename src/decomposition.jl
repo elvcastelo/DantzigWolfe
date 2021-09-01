@@ -1,25 +1,10 @@
+# TODO: Rezar pra dar certo
 function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::SubProblemData, instance::ModelInstance)
     printstyled("[DantzigWolfe] Iniciando decomposição de Dantzig-Wolfe.\n", color=:blue, bold=true)
-    ϵ = 10^-6
     iter = 1
-    z = 10^6
     while true
         masterproblem = build_masterproblem(masterproblem_data)
         optimize!(masterproblem.model)
-
-        if iter == 1
-            z = objective_value(masterproblem.model)
-        else
-            if z - objective_value(masterproblem.model) <= ϵ
-                printstyled("[DantzigWolfe] Iteração $iter: Melhoria inferior a ϵ = 10^-6. Retornando. \n", color=:red, bold=true)
-                z = objective_value(masterproblem.model)
-                return masterproblem
-            else
-                z = objective_value(masterproblem.model)
-            end
-        end
-
-        println(z - objective_value(masterproblem.model))
         
         if termination_status(masterproblem.model) == MOI.OPTIMAL
             printstyled("[DantzigWolfe] Iteração $iter: O problema mestre possui uma solução ótima.\n", color=:blue, bold=true)

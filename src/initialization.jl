@@ -79,7 +79,7 @@ function initialize(instance::ModelInstance)
     @inbounds for vertex in odd_demands
         demand = instance.demands[vertex]
         arcs = instance.arcs_indexes[:,vertex][findall(x->(x>0), instance.adjacency_matrix[:,vertex])]
-        A[vertex, arcs.+2] .= 1
+        A[vertex, arcs.+2] .= -1
         A[vertex, [1, 2]] .= 1
         b[vertex] = ceil(Int, demand / 2)
     end

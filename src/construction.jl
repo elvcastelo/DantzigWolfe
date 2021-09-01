@@ -104,6 +104,11 @@ function model_from_file(path::String)
         # TODO: Remover retorno
         printstyled("[model_from_file] Inicializando modelo \n", color=:blue, bold=true)
         model_instance = ModelInstance(arc_indexes, adjacency_matrix, capacity_matrix, arc_set, demands, n, 2m)
+
+        # Cria o modelo original e o resolve
+        # model = originalModel(model_instance)
+
+        # Inicializa a decomposição de Dantzig-Wolfe
         model = initialize(model_instance)
         return model
     end
