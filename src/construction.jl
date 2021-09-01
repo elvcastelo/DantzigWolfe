@@ -102,7 +102,6 @@ function model_from_file(path::String)
         end
 
         # TODO: Remover retorno
-        # Evita executar os outros arquivos
         printstyled("[model_from_file] Inicializando modelo \n", color=:blue, bold=true)
         model_instance = ModelInstance(arc_indexes, adjacency_matrix, capacity_matrix, arc_set, demands, n, 2m)
         model = initialize(model_instance)
