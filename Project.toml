@@ -1,0 +1,4 @@
+name = "dantzig_wolfe"
+uuid = "f974b5c5-8d36-463b-87a6-abae3b81e16b"
+authors = ["Emanuel Castelo <eliaslvcastelo@gmail.com>"]
+version = "0.1.0"
