@@ -8,6 +8,8 @@ function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::Su
     z = 10^6
     bounds = ""
     masterproblem = build_dualmasterproblem(masterproblem_data)
+    subproblem = build_subproblem(subproblem_data, [0 0], [0], 0, instance, false, true)
+
     while true
         optimize!(masterproblem.model)
 
@@ -41,7 +43,7 @@ function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::Su
             λ = masterproblem.λ
             λ_0 = masterproblem.λ_0
 
-            subproblem = build_subproblem(subproblem_data, A_line, value.(λ), value(λ_0), instance)
+            @objective(subproblem.model, Min, (subproblem_data.c' - value.(λ)' * A_line) * subproblem.x - value(λ_0))
             optimize!(subproblem.model)
 
             if termination_status(subproblem.model) == MOI.OPTIMAL
@@ -57,7 +59,7 @@ function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::Su
                     return masterproblem
                 else
                     if verbose printstyled("[DantzigWolfe] Iteração $iter: O subproblema possui δ < 0, portanto iremos acrescentar uma nova coluna. \n", color=:blue, bold=true) end
-                    # Obtêm o valor do
+                    # Obtêm o valor do ponto extremo
                     extreme_point = value.(subproblem.x)
                     # Adiciona uma nova restrição ao modelo
                     @constraint(masterproblem.model, λ' * (A_line * extreme_point) + λ_0 <= 0)
