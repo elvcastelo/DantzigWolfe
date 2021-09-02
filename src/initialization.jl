@@ -1,4 +1,4 @@
-function get_initial_point(instance::ModelInstance)
+function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubProblem, SubProblemData}
     restrictions_size = instance.vertices + instance.arcs
     A = zeros(restrictions_size, instance.arcs)
     b = zeros(restrictions_size)
@@ -42,15 +42,17 @@ function get_initial_point(instance::ModelInstance)
     subproblem_data.A = A[:,1:instance.arcs]
     subproblem_data.c = c[1:instance.arcs]
 
-    printstyled("[get_initial_point] Resolvendo subproblema para obter ponto extremo inicial.\n", color=:blue, bold=true)
+    if verbose; printstyled("[get_initial_point] Resolvendo subproblema para obter ponto extremo inicial.\n", color=:blue, bold=true) end
     optimize!(subproblem.model)
 
     return subproblem, subproblem_data
 end
 
-function initialize(instance::ModelInstance)
+function initialize(instance::ModelInstance, verbose::Bool)::MasterProblem
     # Obtêm um ponto viável inicial que satisfaz as restrições (2) e (5).
-    subproblem, subproblem_data = get_initial_point(instance)
+    subproblem, subproblem_data = get_initial_point(instance, verbose)
+
+    if verbose; printstyled("[initialize] Obtendo dados para a formulação do problema mestre.\n", color=:blue, bold=true) end
     # subproblem, subproblem_data = get_initial_point(instance)
     V = Vector{Vector{Float64}}()
     R = Vector{Vector{Float64}}()
@@ -86,11 +88,12 @@ function initialize(instance::ModelInstance)
 
     masterproblem_data = MasterProblemData(A, b, c, V, R)
 
-    return DantzigWolfe(masterproblem_data, subproblem_data, instance)
+    return DantzigWolfe(masterproblem_data, subproblem_data, instance, verbose)
 end
 
-function originalModel(instance::ModelInstance)
-    model = Model(CPLEX.Optimizer)
+function originalModel(instance::ModelInstance)::Model
+    model = Model(CPLEX.Optimizer, bridge_constraints=false)
+    set_silent(model)
 
     @variables(model, begin
         z >= 0
@@ -101,7 +104,7 @@ function originalModel(instance::ModelInstance)
     even_demands = findall(x->(x%2==0), instance.demands)
     odd_demands = setdiff(1:instance.vertices, even_demands)
 
-    # # Cria as restrições para as demandas pares e ímpares utilizando as definições do modelo
+    # Cria as restrições para as demandas pares e ímpares utilizando as definições do modelo
     @inbounds for vertex in even_demands
         demand = instance.demands[vertex]
         arcs = instance.arcs_indexes[:,vertex][findall(x->(x>0), instance.adjacency_matrix[:,vertex])]
