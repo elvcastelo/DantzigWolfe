@@ -13,7 +13,7 @@ get_initial_point, initialize, originalModel,
 # subproblem.jl
 SubProblem, SubProblemData, build_subproblem,
 # masterproblem.jl
-MasterProblemData, MasterProblem, build_dualmasterproblem, MasterProblemDual
+MasterProblemData, MasterProblem, build_dualmasterproblem, MasterProblemDual,
 # decomposition.jl
 DantzigWolfe
 
