@@ -48,14 +48,13 @@ function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubPro
     return subproblem, subproblem_data
 end
 
-function initialize(instance::ModelInstance, verbose::Bool)::MasterProblem
+function initialize(instance::ModelInstance, verbose::Bool)
     # Obtêm um ponto viável inicial que satisfaz as restrições (2) e (5).
     subproblem, subproblem_data = get_initial_point(instance, verbose)
 
     if verbose; printstyled("[initialize] Obtendo dados para a formulação do problema mestre.\n", color=:blue, bold=true) end
     # subproblem, subproblem_data = get_initial_point(instance)
     V = Vector{Vector{Float64}}()
-    R = Vector{Vector{Float64}}()
 
     # Coloca o ponto adquirido em V
     push!(V, value.(subproblem.x)[1:instance.arcs])
@@ -86,7 +85,12 @@ function initialize(instance::ModelInstance, verbose::Bool)::MasterProblem
         b[vertex] = ceil(Int, demand / 2)
     end
 
-    masterproblem_data = MasterProblemData(A, b, c, V, R)
+    _, n = size(A)
+    last_constraint = zeros(Int, 1, n)
+    last_constraint[2] = 1
+    A = vcat(A, last_constraint)
+
+    masterproblem_data = MasterProblemData(A, b, c, V)
 
     return DantzigWolfe(masterproblem_data, subproblem_data, instance, verbose)
 end
