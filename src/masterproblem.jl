@@ -32,7 +32,7 @@ function build_masterproblem(data::MasterProblemData)::MasterProblem
         α[i=1:p] >= 0
         β[i=1:q] >= 0
     end)
-
+    
     constraint_vector = Vector{AffExpr}()
     objective_exp = c_0' * [z, w]
 
@@ -60,6 +60,7 @@ function build_masterproblem(data::MasterProblemData)::MasterProblem
         push!(constraint_vector, constraint_exp)
     end
 
+    @constraint(model, λ, constraint_vector .>= data.b)
     @constraint(model, λ_0, sum(α) == 1)
 
     @objective(model, Min, objective_exp)
