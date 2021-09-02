@@ -1,20 +1,35 @@
-function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::SubProblemData, instance::ModelInstance, verbose::Bool)::MasterProblem
+function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::SubProblemData, instance::ModelInstance, verbose::Bool)::MasterProblemDual
     if verbose; printstyled("[DantzigWolfe] Iniciando decomposição de Dantzig-Wolfe.\n", color=:blue, bold=true) end
+
     iter = 1
+    max_iter = 10000
+    same_objective_iter = 0
+
     z = 10^6
     bounds = ""
+    masterproblem = build_dualmasterproblem(masterproblem_data)
     while true
-        masterproblem = build_masterproblem(masterproblem_data)
         optimize!(masterproblem.model)
 
+        if iter == max_iter
+            printstyled("[DantzigWolfe] Iteração $iter: O limite de iterações foi atingido.\n", color=:red, bold=true)
+            return masterproblem
+        end
+
         if iter == 1
-            z = objective_value(masterproblem.model)
+            z = objective_value(masterproblem.model)        
         else
             if z - objective_value(masterproblem.model) == 0
-                if verbose; printstyled("[DantzigWolfe] O problema não obteve nenhuma melhora.", color=:red, bold=true) end
-                return masterproblem
+                if same_objective_iter == 10
+                    if verbose; printstyled("[DantzigWolfe] O problema não obteve nenhuma melhora.", color=:red, bold=true) end
+                    println(bounds)
+                    return masterproblem
+                else
+                    same_objective_iter += 1
+                end
             else
                 z = objective_value(masterproblem.model)
+                same_objective_iter = 0
             end
         end
 
@@ -26,7 +41,7 @@ function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::Su
             λ = masterproblem.λ
             λ_0 = masterproblem.λ_0
 
-            subproblem = build_subproblem(subproblem_data, A_line, dual.(λ), dual(λ_0), instance)
+            subproblem = build_subproblem(subproblem_data, A_line, value.(λ), value(λ_0), instance)
             optimize!(subproblem.model)
 
             if termination_status(subproblem.model) == MOI.OPTIMAL
@@ -38,14 +53,19 @@ function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::Su
 
                 if δ >= 0
                     if verbose; printstyled("[DantzigWolfe] Iteração $iter: O subproblema possui δ >= 0, portanto temos uma solução ótima.\n", color=:blue, bold=true) end
+                    println(bounds)
                     return masterproblem
                 else
                     if verbose printstyled("[DantzigWolfe] Iteração $iter: O subproblema possui δ < 0, portanto iremos acrescentar uma nova coluna. \n", color=:blue, bold=true) end
-                    push!(masterproblem_data.V, value.(subproblem.x)) 
+                    # Obtêm o valor do
+                    extreme_point = value.(subproblem.x)
+                    # Adiciona uma nova restrição ao modelo
+                    @constraint(masterproblem.model, λ' * (A_line * extreme_point) + λ_0 <= 0)
                 end
             end
         else
             if verbose; printstyled("[DantzigWolfe] Iteração $iter: O problema é ilimitado ou inviável. Retornando.\n", color=:blue, bold=true) end
+            println(bounds)
             return masterproblem
         end
 
