@@ -5,8 +5,16 @@ using JuMP
 using LinearAlgebra
 
 export 
-# Construction.jl
-model_from_file, build_subproblem, build_masterproblem, DantzigWolfe
+# construction.jl
+model_from_file, 
+# initialization.jl
+get_initial_point, initialize, originalModel, 
+# subproblem.jl
+SubProblem, SubProblemData, build_subproblem,
+# masterproblem.jl
+MasterProblemData, MasterProblem, build_masterproblem,
+# decomposition.jl
+DantzigWolfe
 
 include("construction.jl")
 include("initialization.jl")
