@@ -18,16 +18,16 @@ mutable struct MasterProblemDual
 end
 
 function build_dualmasterproblem(data::MasterProblemData)::MasterProblemDual
-    model = Model(CPLEX.Optimizer)
-    # set_silent(model)
+    model = direct_model(CPLEX.Optimizer())
+    set_silent(model)
 
     m, _ = size(data.A)
     p = length(data.V)
 
     @variables(model, begin
-        λ[i=1:m-1] >= 0
-        λ_w <= 0
-        λ_0
+        λ[i=1:m-1] >= 0, Int
+        λ_w <= 0, Int
+        λ_0, Int
     end)
 
     variable_vector = [λ..., λ_w]
