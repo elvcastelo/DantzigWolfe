@@ -13,8 +13,9 @@ mutable struct MasterProblem
 end
 
 function build_masterproblem(data::MasterProblemData)::MasterProblem
-    model = Model(CPLEX.Optimizer)
-    
+    model = Model(CPLEX.Optimizer, bridge_constraints=false)
+    set_silent(model)
+
     p = length(data.V)
     q = length(data.R)
 
@@ -23,6 +24,7 @@ function build_masterproblem(data::MasterProblemData)::MasterProblem
 
     A_0 = data.A[:,1:2]
     A = data.A[:,3:end]
+    m, _ = size(A)
 
     @variables(model, begin
         z >= 0
@@ -31,20 +33,33 @@ function build_masterproblem(data::MasterProblemData)::MasterProblem
         β[i=1:q] >= 0
     end)
 
-    constraint_exp = A_0 * [z, w]
-    objective_exp = c_0'*[z, w]
+    constraint_vector = Vector{AffExpr}()
+    objective_exp = c_0' * [z, w]
 
-    @inbounds for i = 1:p
-        constraint_exp += (A * data.V[i]) * α[i]
-        objective_exp += (c' * data.V[i]) * α[i]
+    @inbounds for j = 1:p
+        add_to_expression!(objective_exp, (c' * data.V[j]) * α[j])
     end
 
     @inbounds for j = 1:q
-        constraint_exp += (A * data.R[j]) * β[j]
-        objective_exp += (c' * data.R[i]) * β[j]
+        add_to_expression!(objective_exp, (c' * data.R[j]) * β[j])
     end
 
-    @constraint(model, λ, constraint_exp .>= data.b)
+    @inbounds for i = 1:m
+        constraint_exp = A_0[i,:]' * [z, w]
+
+        @inbounds for j = 1:p
+            add_to_expression!(constraint_exp, (A[i,:]' * data.V[j]) * α[j])
+            add_to_expression!(objective_exp, (c' * data.V[j]) * α[j])
+        end
+
+        @inbounds for j = 1:q
+            add_to_expression!(constraint_exp, (A[i,:]' * data.R[j]) * β[j])
+            add_to_expression!(objective_exp, (c' * data.R[j]) * β[j])
+        end
+
+        push!(constraint_vector, constraint_exp)
+    end
+
     @constraint(model, λ_0, sum(α) == 1)
 
     @objective(model, Min, objective_exp)
