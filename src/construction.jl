@@ -24,14 +24,14 @@ Lê os arquivos no ficheiro `path` e os transforma em uma matriz de adjacência,
 # Argumentos
 - `path`: Caminho do ficheiro.
 """
-function model_from_file(path::String)
+function model_from_file(path::String, verbose=false)
     files = readdir(path, join=false)
     for file in files
         if file == "capacities"
             continue
         end
 
-        printstyled("[model_from_file] Trabalhando com o arquivo \"$file\"\n", color=:blue, bold=true)
+        if verbose; printstyled("[model_from_file] Trabalhando com o arquivo \"$file\"\n", color=:blue, bold=true) end
         # Realiza uma concatenação do caminho absoluto do arquivo
         join_file = path * "\\" * file
         join_capacities_file = path * "\\capacities\\" * file
@@ -47,7 +47,7 @@ function model_from_file(path::String)
 
         # Cria um vetor de demanda nos vértices
         demands = zeros(Int, n)
-        printstyled("[model_from_file] Obtendo vetor de demandas \n", color=:blue, bold=true)
+        if verbose; printstyled("[model_from_file] Obtendo vetor de demandas \n", color=:blue, bold=true) end
         # Visita cada uma das próximas n linhas para obter a demanda de cada vértice
         for line = 2:n+1
             if file_buffer[line] != "0"
@@ -69,7 +69,7 @@ function model_from_file(path::String)
         # Valor de soma para normalização dos índices
         i = 1
 
-        printstyled("[model_from_file] Criando estrutura da instância \n", color=:blue, bold=true)
+        if verbose; printstyled("[model_from_file] Criando estrutura da instância \n", color=:blue, bold=true) end
         # Visita cada uma das próximas m linhas para obter os arcos e criar a matriz de adjacência
         @inbounds for line = n+2:length(file_buffer)
             # Obtenção dos vértices que formam o arco
@@ -101,15 +101,10 @@ function model_from_file(path::String)
             end
         end
 
-        # TODO: Remover retorno
-        printstyled("[model_from_file] Inicializando modelo \n", color=:blue, bold=true)
+        if verbose; printstyled("[model_from_file] Inicializando modelo.\n", color=:blue, bold=true) end
         model_instance = ModelInstance(arc_indexes, adjacency_matrix, capacity_matrix, arc_set, demands, n, 2m)
 
-        # Cria o modelo original e o resolve
-        # model = originalModel(model_instance)
-
         # Inicializa a decomposição de Dantzig-Wolfe
-        model = initialize(model_instance)
-        return model
+        initialize(model_instance, verbose)
     end
 end
