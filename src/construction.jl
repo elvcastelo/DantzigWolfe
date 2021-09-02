@@ -23,6 +23,7 @@ Lê os arquivos no ficheiro `path` e os transforma em uma matriz de adjacência,
 
 # Argumentos
 - `path`: Caminho do ficheiro.
+- `verbose`: Booleano indicando se deseja receber saídas conforme o algoritmo executa.
 """
 function model_from_file(path::String, verbose=false)
     files = readdir(path, join=false)
@@ -31,7 +32,7 @@ function model_from_file(path::String, verbose=false)
             continue
         end
 
-        if verbose; printstyled("[model_from_file] Trabalhando com o arquivo \"$file\"\n", color=:blue, bold=true) end
+        printstyled("[model_from_file] Trabalhando com o arquivo \"$file\"\n", color=:blue, bold=true)
         # Realiza uma concatenação do caminho absoluto do arquivo
         join_file = path * "\\" * file
         join_capacities_file = path * "\\capacities\\" * file
@@ -90,7 +91,7 @@ function model_from_file(path::String, verbose=false)
             capacity_matrix[u, v] = capacityIn
             capacity_matrix[v, u] = capacityOut
 
-            # Gambiarra para normalizar os índices
+            # Normalização dos índices dos arcos
             if line - n - 1 == 1
                 arc_indexes[u, v] = line - n - 1
                 arc_indexes[v, u] = line - n
@@ -105,6 +106,6 @@ function model_from_file(path::String, verbose=false)
         model_instance = ModelInstance(arc_indexes, adjacency_matrix, capacity_matrix, arc_set, demands, n, 2m)
 
         # Inicializa a decomposição de Dantzig-Wolfe
-        initialize(model_instance, verbose)
+        return initialize(model_instance, verbose)
     end
 end
