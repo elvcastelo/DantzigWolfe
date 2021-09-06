@@ -15,7 +15,7 @@ end
 Contrói o subproblema do problema original utilizando uma repartição fornecida pelo usuário.
 """
 function build_subproblem(data::SubProblemData, A_line::Matrix{Int}, λ::Vector, λ_0::Number, instance::ModelInstance, initial_solution=false, no_objective=false)::SubProblem
-    model = Model(CPLEX.Optimizer, bridge_constraints=false)
+    model = direct_model(CPLEX.Optimizer())
     set_silent(model)
 
     set_optimizer_attribute(model, "CPX_PARAM_LPMETHOD", CPX_ALG_NET)
