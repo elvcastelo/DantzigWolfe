@@ -1,23 +1,16 @@
-function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::SubProblemData, instance::ModelInstance, verbose::Bool)::MasterProblemDual
+function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem::SubProblem, subproblem_data::SubProblemData, verbose::Bool)::MasterProblemDual
     if verbose; printstyled("[DantzigWolfe] Iniciando decomposição de Dantzig-Wolfe.\n", color=:blue, bold=true) end
 
     iter = 1
-    max_iter = 10000
     same_objective_iter = 0
 
     z = 10^6
     bounds = ""
     masterproblem = build_dualmasterproblem(masterproblem_data)
-    subproblem = build_subproblem(subproblem_data, [0 0], [0], 0, instance, false, true)
     A_line = masterproblem_data.A[:,3:end]
 
     while true
         optimize!(masterproblem.model)
-
-        if iter == max_iter
-            printstyled("[DantzigWolfe] Iteração $iter: O limite de iterações foi atingido.\n", color=:red, bold=true)
-            return masterproblem
-        end
 
         if iter == 1
             z = objective_value(masterproblem.model)        
@@ -59,7 +52,7 @@ function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::Su
                     # Obtêm o valor do ponto extremo
                     extreme_point = value.(subproblem.x)
                     # Adiciona uma nova restrição ao modelo
-                    @constraint(masterproblem.model, λ' * (A_line * extreme_point) + λ_0 <= 0)
+                    @constraint(masterproblem.model, masterproblem.λ' * (A_line * extreme_point) + masterproblem.λ_0 <= 0)
                 end
             end
         else
