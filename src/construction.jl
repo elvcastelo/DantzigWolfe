@@ -27,12 +27,13 @@ Lê os arquivos no ficheiro `path` e os transforma em uma matriz de adjacência,
 """
 function model_from_file(path::String, verbose=false)
     files = readdir(path, join=false)
-    for file in files
+    @inbounds for file in files
+        # Ignora a pasta "capacities"
         if file == "capacities"
             continue
         end
 
-        printstyled("[model_from_file] Trabalhando com o arquivo \"$file\"\n", color=:blue, bold=true)
+        # printstyled("[model_from_file] Trabalhando com o arquivo \"$file\"\n", color=:blue, bold=true)
         # Realiza uma concatenação do caminho absoluto do arquivo
         join_file = path * "\\" * file
         join_capacities_file = path * "\\capacities\\" * file
@@ -48,9 +49,11 @@ function model_from_file(path::String, verbose=false)
 
         # Cria um vetor de demanda nos vértices
         demands = zeros(Int, n)
+
         if verbose; printstyled("[model_from_file] Obtendo vetor de demandas \n", color=:blue, bold=true) end
+
         # Visita cada uma das próximas n linhas para obter a demanda de cada vértice
-        for line = 2:n+1
+        @inbounds for line = 2:n+1
             if file_buffer[line] != "0"
                 demand = parse(Int, file_buffer[line])
                 # A linha é substraída por um pois embora inicie a contagem na segunda linha em diante essas se referem ao primeiro vetor em diante.
@@ -71,16 +74,17 @@ function model_from_file(path::String, verbose=false)
         i = 1
 
         if verbose; printstyled("[model_from_file] Criando estrutura da instância \n", color=:blue, bold=true) end
+
         # Visita cada uma das próximas m linhas para obter os arcos e criar a matriz de adjacência
         @inbounds for line = n+2:length(file_buffer)
             # Obtenção dos vértices que formam o arco
             u, v = split(file_buffer[line])
+            # Conversão dos valores para inteiro e incrementa em 1 uma vez que o índice começa em 1 ao invés de 0
+            u, v = parse(Int, u)+1, parse(Int, v)+1
             # Obtenção das capacidades dos arcos
             capacityIn, capacityOut = split(file_capacities_buffer[line-n-1])
             # Conversão das capacidades para inteiro
             capacityIn, capacityOut = parse(Int, capacityIn), parse(Int, capacityOut)
-            # Conversão dos valores para inteiro e incrementa em 1 uma vez que o índice começa em 1 ao invés de 0
-            u, v = parse(Int, u)+1, parse(Int, v)+1
 
             push!(arc_set, (u, v))
             push!(arc_set, (v, u))
@@ -103,6 +107,7 @@ function model_from_file(path::String, verbose=false)
         end
 
         if verbose; printstyled("[model_from_file] Inicializando modelo.\n", color=:blue, bold=true) end
+        
         model_instance = ModelInstance(arc_indexes, adjacency_matrix, capacity_matrix, arc_set, demands, n, 2m)
 
         # Inicializa a decomposição de Dantzig-Wolfe
