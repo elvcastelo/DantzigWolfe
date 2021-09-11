@@ -8,7 +8,6 @@ Instância de um problema do modelo onde os campos representam as suas proprieda
 """
 struct ModelInstance
     arcs_indexes::Matrix{Int}
-    adjacency_matrix::Matrix{Int}
     capacity_matrix::Matrix{Int}
     arcs_set::Vector{Tuple}
     demands::Vector{Int}
@@ -61,8 +60,6 @@ function model_from_file(path::String, verbose=false)
             end
         end
 
-        # Matriz de adjacência inicial
-        adjacency_matrix = zeros(Int, n, n)
         # Matriz capacidade inicial
         capacity_matrix = zeros(Int, n, n)
         # Vetor de arcos
@@ -85,12 +82,6 @@ function model_from_file(path::String, verbose=false)
             capacityIn, capacityOut = split(file_capacities_buffer[line-n-1])
             # Conversão das capacidades para inteiro
             capacityIn, capacityOut = parse(Int, capacityIn), parse(Int, capacityOut)
-
-            push!(arc_set, (u, v))
-            push!(arc_set, (v, u))
-
-            adjacency_matrix[u, v] = 1
-            adjacency_matrix[v, u] = 1
 
             capacity_matrix[u, v] = capacityIn
             capacity_matrix[v, u] = capacityOut
@@ -118,6 +109,6 @@ function model_from_file(path::String, verbose=false)
         model_instance = ModelInstance(arc_indexes, capacity_matrix, arc_set, demands, n, 2m)
 
         # Inicializa a decomposição de Dantzig-Wolfe
-        return initialize(model_instance, verbose)
+        initialize(model_instance, verbose)
     end
 end
