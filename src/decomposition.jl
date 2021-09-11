@@ -40,11 +40,7 @@ function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::Su
         if termination_status(masterproblem.model) == MOI.OPTIMAL
             if verbose; printstyled("[DantzigWolfe] Iteração $iter: O problema mestre possui uma solução ótima.\n", color=:blue, bold=true) end
             
-            A_line = masterproblem_data.A[:,3:end]
-            λ = masterproblem.λ
-            λ_0 = masterproblem.λ_0
-
-            @objective(subproblem.model, Min, (subproblem_data.c' - value.(λ)' * A_line) * subproblem.x - value(λ_0))
+            @objective(subproblem.model, Min, (subproblem_data.c' - value.(masterproblem.λ)' * A_line) * subproblem.x - value(masterproblem.λ_0))
             optimize!(subproblem.model)
 
             if termination_status(subproblem.model) == MOI.OPTIMAL
