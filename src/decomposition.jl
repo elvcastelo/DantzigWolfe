@@ -9,6 +9,7 @@ function DantzigWolfe(masterproblem_data::MasterProblemData, subproblem_data::Su
     bounds = ""
     masterproblem = build_dualmasterproblem(masterproblem_data)
     subproblem = build_subproblem(subproblem_data, [0 0], [0], 0, instance, false, true)
+    A_line = masterproblem_data.A[:,3:end]
 
     while true
         optimize!(masterproblem.model)
