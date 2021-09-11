@@ -27,16 +27,16 @@ Lê os arquivos no ficheiro `path` e os transforma em uma matriz de adjacência,
 """
 function model_from_file(path::String, verbose=false)
     files = readdir(path, join=false)
-    @inbounds for file in files
+    @inbounds for i in eachindex(files)
         # Ignora a pasta "capacities"
-        if file == "capacities"
+        if files[i] == "capacities"
             continue
         end
 
         # printstyled("[model_from_file] Trabalhando com o arquivo \"$file\"\n", color=:blue, bold=true)
         # Realiza uma concatenação do caminho absoluto do arquivo
-        join_file = path * "\\" * file
-        join_capacities_file = path * "\\capacities\\" * file
+        join_file = joinpath(path, files[i])
+        join_capacities_file = joinpath(path*"\\capacities\\", files[i])
 
         # Lê os arquivos por linhas, retornando um vetor de strings
         file_buffer = readlines(join_file, keep=false)
@@ -66,12 +66,12 @@ function model_from_file(path::String, verbose=false)
         # Matriz capacidade inicial
         capacity_matrix = zeros(Int, n, n)
         # Vetor de arcos
-        arc_set = Vector{Tuple}()
+        arc_set = [(0, 0) for _ in 1:2m]
         # Matriz dos índices dos arcos
         arc_indexes = zeros(Int, n, n)
 
         # Valor de soma para normalização dos índices
-        i = 1
+        j = 1
 
         if verbose; printstyled("[model_from_file] Criando estrutura da instância \n", color=:blue, bold=true) end
 
@@ -99,16 +99,23 @@ function model_from_file(path::String, verbose=false)
             if line - n - 1 == 1
                 arc_indexes[u, v] = line - n - 1
                 arc_indexes[v, u] = line - n
+
+                arc_set[line-n-1] = (u, v)
+                arc_set[line-n] = (v, u)
             else
-                arc_indexes[u, v] = line - n - 1 + i
-                arc_indexes[v, u] = line - n + i
-                i += 1
+                arc_indexes[u, v] = line - n - 1 + j
+                arc_indexes[v, u] = line - n + j
+
+                arc_set[line-n-1+j] = (u, v)
+                arc_set[line-n+j] = (v, u)
+
+                j += 1
             end
         end
 
         if verbose; printstyled("[model_from_file] Inicializando modelo.\n", color=:blue, bold=true) end
         
-        model_instance = ModelInstance(arc_indexes, adjacency_matrix, capacity_matrix, arc_set, demands, n, 2m)
+        model_instance = ModelInstance(arc_indexes, capacity_matrix, arc_set, demands, n, 2m)
 
         # Inicializa a decomposição de Dantzig-Wolfe
         return initialize(model_instance, verbose)
