@@ -8,8 +8,8 @@ function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubPro
 
     # Cria-se as restrições de fluxo
     @inbounds for i = 1:instance.vertices
-        arcs_out = instance.arcs_indexes[i,:][findall(x->(x>0), instance.adjacency_matrix[i,:])]
-        arcs_in = instance.arcs_indexes[:,i][findall(x->(x>0), instance.adjacency_matrix[:,i])]
+        arcs_out = instance.arcs_indexes[i,:][findall(x->(x>0), instance.capacity_matrix[i,:])]
+        arcs_in = instance.arcs_indexes[:,i][findall(x->(x>0), instance.capacity_matrix[:,i])]
 
         A[i, arcs_out] .= 1
         A[i, arcs_in] .= -1
@@ -24,40 +24,41 @@ function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubPro
         b[i] = instance.capacity_matrix[u, v]
     end
 
-    subproblem_data = SubProblemData(A, b, c)
-    subproblem = build_subproblem(subproblem_data, instance)
-    @objective(subproblem.model, Min, 0)
+    sub_data = SubProblemData(A, b, c)
+    sub = build_subproblem(sub_data, instance)
+    @objective(sub.model, Min, 0)
 
     if verbose; printstyled("[get_initial_point] Resolvendo subproblema para obter ponto extremo inicial.\n", color=:blue, bold=true) end
-    optimize!(subproblem.model)
+    optimize!(sub.model)
 
-    return subproblem, subproblem_data
+    return sub, sub_data
 end
 
 function initialize(instance::ModelInstance, verbose::Bool)
     # Obtêm um ponto viável inicial que satisfaz as restrições (2) e (5).
-    subproblem, subproblem_data = get_initial_point(instance, verbose)
+    sub, sub_data = get_initial_point(instance, verbose)
 
     if verbose; printstyled("[initialize] Obtendo dados para a formulação do problema mestre.\n", color=:blue, bold=true) end
-    # subproblem, subproblem_data = get_initial_point(instance)
+
     V = Vector{Vector{Float64}}()
 
     # Coloca o ponto adquirido em V
-    push!(V, value.(subproblem.x)[1:instance.arcs])
+    push!(V, value.(sub.x)[1:instance.arcs])
 
     # Obtêm as demandas pares e ímpares
-    even_demands = findall(x->(x%2==0), instance.demands)
+    even_demands = findall(instance.demands .% 2 .== 0)
     odd_demands = setdiff(1:instance.vertices, even_demands)
 
     A = zeros(Int, instance.vertices, instance.arcs+2)
     b = zeros(Int, instance.vertices)
     c = zeros(Int, instance.arcs+2)
+    # Designa os coeficientes da função objetivo para z e w respectivamente
     c[1] = 2 ; c[2] = 1
 
     # Cria as restrições para as demandas pares e ímpares utilizando as definições do modelo
     @inbounds for vertex in even_demands
         demand = instance.demands[vertex]
-        arcs = instance.arcs_indexes[:,vertex][findall(x->(x>0), instance.adjacency_matrix[:,vertex])]
+        arcs = instance.arcs_indexes[:,vertex][findall(instance.capacity_matrix[:,vertex] .> 0)]
         A[vertex, arcs.+2] .= -1
         A[vertex, 1] = 1
         b[vertex] = demand / 2
@@ -65,21 +66,20 @@ function initialize(instance::ModelInstance, verbose::Bool)
 
     @inbounds for vertex in odd_demands
         demand = instance.demands[vertex]
-        arcs = instance.arcs_indexes[:,vertex][findall(x->(x>0), instance.adjacency_matrix[:,vertex])]
+        arcs = instance.arcs_indexes[:,vertex][findall(instance.capacity_matrix[:,vertex] .> 0)]
         A[vertex, arcs.+2] .= -1
         A[vertex, [1, 2]] .= 1
-        b[vertex] = ceil(Int, demand / 2)
+        b[vertex] = cld(demand, 2)
     end
 
-    _, n = size(A)
-    last_constraint = zeros(Int, 1, n)
+    last_constraint = zeros(Int, 1, instance.arcs+2)
     last_constraint[2] = 1
     A = vcat(A, last_constraint)
 
-    masterproblem_data = MasterProblemData(A, b, c, V)
+    master_data = MasterProblemData(A, b, c, V)
     
     # initialize_decomposition(masterproblem_data, subproblem_data, instance)
-    return DantzigWolfe(masterproblem_data, subproblem, subproblem_data, verbose)
+    return DantzigWolfe(master_data, sub, sub_data, verbose)
 end
 
 function originalModel(instance::ModelInstance)::Model
