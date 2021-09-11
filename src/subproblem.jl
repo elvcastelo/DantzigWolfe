@@ -14,7 +14,7 @@ end
 
 Contrói o subproblema do problema original utilizando uma repartição fornecida pelo usuário.
 """
-function build_subproblem(data::SubProblemData, A_line::Matrix{Int}, λ::Vector, λ_0::Number, instance::ModelInstance, initial_solution=false, no_objective=false)::SubProblem
+function build_subproblem(data::SubProblemData, instance::ModelInstance)::SubProblem
     model = direct_model(CPLEX.Optimizer())
     set_silent(model)
 
@@ -23,21 +23,9 @@ function build_subproblem(data::SubProblemData, A_line::Matrix{Int}, λ::Vector,
     _, n = size(data.A)
 
     @variable(model, x[i=1:n] >= 0)
-    
-    if !no_objective
-        if !initial_solution
-            @objective(model, Min, (data.c' - λ' * A_line) * x - λ_0)
-        else
-            @objective(model, Min, data.c' * x)
-        end
-    end
 
-    if !initial_solution
-        @constraint(model, data.A[1:instance.vertices,:] * x .== data.b[1:instance.vertices])
-        @constraint(model, data.A[instance.vertices+1:end,:] * x .<= data.b[instance.vertices+1:end])
-    else
-        @constraint(model, data.A * x .== data.b)
-    end
+    @constraint(model, data.A[1:instance.vertices,:] * x .== data.b[1:instance.vertices])
+    @constraint(model, data.A[instance.vertices+1:end,:] * x .<= data.b[instance.vertices+1:end])
 
     return SubProblem(model, x)
 end

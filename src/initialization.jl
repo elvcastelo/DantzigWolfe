@@ -2,20 +2,8 @@ function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubPro
     restrictions_size = instance.vertices + instance.arcs
     A = zeros(restrictions_size, instance.arcs)
     b = zeros(restrictions_size)
+    c = zeros(instance.arcs)
 
-    # Criamos um vetor de custo com 1s nas posições das variáveis artificiais.
-    c = zeros(2instance.arcs + instance.vertices)
-    c[2instance.arcs+1:end] .= 1
-
-    # Adicionamos as variáveis de folga para as restrições de capacidade. Pelo modelo são |A| restrições de capacidade.
-    slack_matrix = Matrix(1.0I, instance.arcs, instance.arcs)
-    slack_matrix = vcat(zeros(instance.vertices, instance.arcs), slack_matrix)
-
-    # Adicionamos as variáveis artificiais para as restrições de fluxo. Pelo modelo são |V| restrições de fluxo.
-    artificial_matrix = Matrix(1.0I, instance.vertices, instance.vertices)
-    artificial_matrix = vcat(artificial_matrix, zeros(instance.arcs, instance.vertices))
-
-    A = hcat(A, slack_matrix, artificial_matrix)
     b[1:instance.vertices] = instance.demands
 
     # Cria-se as restrições de fluxo
@@ -28,7 +16,7 @@ function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubPro
     end
 
     # Cria-se restrições de capacidade
-    for i = instance.vertices+1:restrictions_size
+    @inbounds for i = instance.vertices+1:restrictions_size
         arc = i-instance.vertices
         A[i, arc] = 1
 
@@ -37,10 +25,8 @@ function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubPro
     end
 
     subproblem_data = SubProblemData(A, b, c)
-    subproblem = build_subproblem(subproblem_data, [0 0], [0], 0, instance, true)
-
-    subproblem_data.A = A[:,1:instance.arcs]
-    subproblem_data.c = c[1:instance.arcs]
+    subproblem = build_subproblem(subproblem_data, instance)
+    @objective(subproblem.model, Min, 0)
 
     if verbose; printstyled("[get_initial_point] Resolvendo subproblema para obter ponto extremo inicial.\n", color=:blue, bold=true) end
     optimize!(subproblem.model)
@@ -91,8 +77,9 @@ function initialize(instance::ModelInstance, verbose::Bool)
     A = vcat(A, last_constraint)
 
     masterproblem_data = MasterProblemData(A, b, c, V)
-
-    return DantzigWolfe(masterproblem_data, subproblem_data, instance, verbose)
+    
+    # initialize_decomposition(masterproblem_data, subproblem_data, instance)
+    return DantzigWolfe(masterproblem_data, subproblem, subproblem_data, verbose)
 end
 
 function originalModel(instance::ModelInstance)::Model
