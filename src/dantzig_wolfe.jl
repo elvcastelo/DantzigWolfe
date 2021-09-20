@@ -3,7 +3,6 @@ module dantzig_wolfe
 using CPLEX
 using JuMP
 using LinearAlgebra
-using Dualization
 
 export 
 # construction.jl
@@ -13,7 +12,7 @@ get_initial_point, initialize, originalModel,
 # subproblem.jl
 SubProblem, SubProblemData, build_subproblem,
 # masterproblem.jl
-MasterProblemData, MasterProblem, build_dualmasterproblem, MasterProblemDual,
+MasterProblemData, MasterProblem, build_dualmaster, MasterProblem,
 # decomposition.jl
 DantzigWolfe
 

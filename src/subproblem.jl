@@ -1,8 +1,8 @@
-mutable struct SubProblem
-    model::Model
-    x::Vector{VariableRef}
-end
+"""
+    SubProblemData
 
+Representação dos dados necessários para a construção do subproblema.
+"""
 mutable struct SubProblemData
     A::Matrix{Int}
     b::Vector{Int}
@@ -10,9 +10,24 @@ mutable struct SubProblemData
 end
 
 """
-    build_subproblem(A::Matrix{Int}, A_line::Matrix{Int}, b::Vector{Int}, c::Vector{Int}, λ::Vector{Float64}, λ_0::Float64)
+    SubProblem
 
-Contrói o subproblema do problema original utilizando uma repartição fornecida pelo usuário.
+Representação do modelo do subproblema, onde `x` é uma referência para as suas variáveis.
+"""
+mutable struct SubProblem
+    model::Model
+    x::Vector{VariableRef}
+end
+
+"""
+    build_subproblem(data::SubProblemData, instance::ModelInstance)::SubProblem
+
+Contrói o subproblema do problema original utilizando uma repartição fornecida pelo usuário. O subproblema trata-se de um problema de fluxo.
+
+# Argumentos
+
+- `data`: Dados do subproblema na representação de `SubProblemData`.
+- `instance`: Instância do problema, onde estão os dados gerais do problema linear, como a matriz de capacidade. 
 """
 function build_subproblem(data::SubProblemData, instance::ModelInstance)::SubProblem
     model = direct_model(CPLEX.Optimizer())

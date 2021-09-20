@@ -1,6 +1,3 @@
-using CPLEX
-using JuMP
-
 """
     ModelInstance
 
@@ -16,9 +13,9 @@ struct ModelInstance
 end
 
 """
-    model_from_file(path::String)
+    model_from_file(path::String, verbose=false)
 
-Lê os arquivos no ficheiro `path` e os transforma em uma matriz de adjacência, uma matriz de capacidade e um vetor de demandas.
+Lê os arquivos no ficheiro `path` e os transforma nos dados necessários para a aplicação do problema. Os dados são transformados em uma `ModelInstance`
 
 # Argumentos
 - `path`: Caminho do ficheiro.
@@ -105,7 +102,7 @@ function model_from_file(path::String, verbose=false)
         end
 
         if verbose; printstyled("[model_from_file] Inicializando modelo.\n", color=:blue, bold=true) end
-        
+
         model_instance = ModelInstance(arc_indexes, capacity_matrix, arc_set, demands, n, 2m)
 
         # Inicializa a decomposição de Dantzig-Wolfe

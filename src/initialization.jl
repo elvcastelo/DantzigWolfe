@@ -1,3 +1,13 @@
+"""
+    get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubProblem, SubProblemData}
+
+Cria o modelo para resolver o subproblema e obter uma solução viável inicial para a primeira execução do problema mestre na iteração do algoritmo de Dantzig-Wolfe.
+
+# Argumentos
+
+- `instance`: Instância do problema, onde estão os dados gerais do problema linear, como a matriz de capacidade.
+- `verbose`: Booleano indicando se deseja receber saídas conforme o algoritmo executa.
+"""
 function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubProblem, SubProblemData}
     restrictions_size = instance.vertices + instance.arcs
     A = zeros(restrictions_size, instance.arcs)
@@ -34,8 +44,16 @@ function get_initial_point(instance::ModelInstance, verbose::Bool)::Tuple{SubPro
     return sub, sub_data
 end
 
-function initialize(instance::ModelInstance, verbose::Bool)
-    # Obtêm um ponto viável inicial que satisfaz as restrições (2) e (5).
+"""
+    initialize(instance::ModelInstance, verbose::Bool)
+
+Inicializa a criação do problema linear, criando um modelo para o problema mestre e um modelo para o subproblema, este último que pode ser descrito como um problema de fluxo.
+
+# Argumentos
+- `instance`: Instância do problema, onde estão os dados gerais do problema linear, como a matriz de capacidade.
+- `verbose`: Booleano indicando se deseja receber saídas conforme o algoritmo executa.
+"""
+function initialize(instance::ModelInstance, verbose::Bool)::MasterProblem
     sub, sub_data = get_initial_point(instance, verbose)
 
     if verbose; printstyled("[initialize] Obtendo dados para a formulação do problema mestre.\n", color=:blue, bold=true) end
@@ -77,11 +95,18 @@ function initialize(instance::ModelInstance, verbose::Bool)
     A = vcat(A, last_constraint)
 
     master_data = MasterProblemData(A, b, c, V)
-    
-    # initialize_decomposition(masterproblem_data, subproblem_data, instance)
+
     return DantzigWolfe(master_data, sub, sub_data, verbose)
 end
 
+"""
+    originalModel(instance::ModelInstance)::Model
+
+Resolve o problema linear original, sem o uso de decomposições. Essa função é útil para comparações, como tempo de execução e a saída desejada.
+
+# Argumentos
+- `instance`: Instância do problema, onde estão os dados gerais do problema linear, como a matriz de capacidade.
+"""
 function originalModel(instance::ModelInstance)::Model
     model = Model(CPLEX.Optimizer, bridge_constraints=false)
     set_silent(model)
